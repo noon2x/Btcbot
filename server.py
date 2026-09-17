@@ -8,6 +8,7 @@ import requests
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
+PID = os.getpid()
 
 # ---------------- shared state ----------------
 state_lock = threading.Lock()
@@ -27,7 +28,7 @@ FLOW_TILT_MAX = 0.18    # max probability shift (fraction) at full weight + full
 
 # ---------------- background pollers ----------------
 def poll_spot():
-    print("poll_spot: thread started", flush=True)
+    print(f"poll_spot: thread started, pid={PID}", flush=True)
     while True:
         try:
             r = requests.get("https://api.exchange.coinbase.com/products/BTC-USD/ticker", timeout=8)
@@ -36,11 +37,11 @@ def poll_spot():
             with state_lock:
                 state["spot"] = price
                 state["status"]["coinbase"] = "ok"
-            print(f"poll_spot: ok, price={price}", flush=True)
+            print(f"poll_spot: ok, pid={PID}, price={price}", flush=True)
         except Exception as e:
             with state_lock:
                 state["status"]["coinbase"] = "error"
-            print(f"poll_spot: ERROR {type(e).__name__}: {e}", flush=True)
+            print(f"poll_spot: ERROR pid={PID} {type(e).__name__}: {e}", flush=True)
         time.sleep(4)
 
 
@@ -163,6 +164,8 @@ def api_state():
         vol = state["annual_vol"]
         kalshi = dict(state["kalshi"])
         status = dict(state["status"])
+
+    print(f"api_state: pid={PID} spot={spot} vol={vol}", flush=True)
 
     # target: client sends its own value, or "auto" to use live spot
     target_param = request.args.get("target")
