@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>BTC 15M — Probability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d10; --panel: #12161b; --panel-2: #171c22; --border: #232a32;
+    --text: #e8edf2; --muted: #7b8794; --up: #34d399; --up-dim: #1a4d3d;
+    --down: #f87171; --down-dim: #4d2323; --accent: #eab308;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--font-sans);
+    min-height: 100vh; padding: env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 20px) 14px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 2px 14px; }
+  header .title { font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+  header .title small { display:block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .clock { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .hero { padding: 20px 16px 16px; }
+  .hero-row { display:flex; gap: 10px; }
+  .side { flex:1; border-radius: 12px; padding: 14px 12px; }
+  .side.above { background: var(--up-dim); }
+  .side.below { background: var(--down-dim); }
+  .side .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .side.above .lbl { color: var(--up); }
+  .side.below .lbl { color: var(--down); }
+  .side .pct { font-family: var(--font-mono); font-size: 34px; font-weight: 700; line-height: 1.1; margin-top: 4px; }
+  .side.above .pct { color: var(--up); }
+  .side.below .pct { color: var(--down); }
+  .barwrap { height: 6px; background: var(--panel-2); border-radius: 4px; overflow: hidden; margin-top: 14px; display:flex; }
+  .barwrap .fill-up { background: var(--up); height: 100%; }
+  .barwrap .fill-down { background: var(--down); height: 100%; }
+  .subline { text-align:center; font-size: 12px; color: var(--muted); margin-top: 12px; font-family: var(--font-mono); }
+  .pricecard { display:flex; align-items:center; justify-content: space-between; }
+  .pricecard .block .k { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+  .pricecard .block .v { font-family: var(--font-mono); font-size: 20px; font-weight: 600; }
+  .pricecard .block .v.mono-sm { font-size: 15px; }
+  .delta-up { color: var(--up); } .delta-down { color: var(--down); }
+  .field { margin-bottom: 12px; } .field:last-child { margin-bottom: 0; }
+  .field .k { font-size: 11px; color: var(--muted); margin-bottom: 6px; display:flex; justify-content: space-between; align-items:center; }
+  .field input[type="number"] {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 11px; color: var(--text); font-family: var(--font-mono); font-size: 16px; font-weight: 600;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .toggle-btn {
+    font-size: 10.5px; font-family: var(--font-sans); font-weight: 600; color: var(--muted);
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer;
+  }
+  .toggle-btn.active { color: var(--accent); border-color: var(--accent); }
+  .row2 { display:flex; gap: 10px; } .row2 > div { flex: 1; }
+  .status { font-size: 11.5px; color: var(--muted); line-height: 1.5; padding: 2px 2px 0; }
+  .status .dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; position:relative; top:-1px; }
+  .dot.ok { background: var(--up); } .dot.warn { background: var(--accent); } .dot.bad { background: var(--down); }
+  .kalshi-compare { display:flex; gap:10px; margin-top: 4px; }
+  .kalshi-compare .kc { flex:1; text-align:center; padding: 8px; border-radius: 9px; background: var(--panel-2); }
+  .kalshi-compare .kc .k { font-size:10px; color:var(--muted); }
+  .kalshi-compare .kc .v { font-family: var(--font-mono); font-size:15px; font-weight:700; margin-top:2px; }
+  .foot { font-size: 10.5px; color: var(--muted); text-align:center; line-height:1.6; padding: 6px 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">BTC · 15-Minute<small>Kalshi window probability</small></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <div class="card hero">
+    <div class="hero-row">
+      <div class="side above"><div class="lbl">ABOVE TARGET</div><div class="pct" id="pctAbove">--%</div></div>
+      <div class="side below"><div class="lbl">BELOW TARGET</div><div class="pct" id="pctBelow">--%</div></div>
+    </div>
+    <div class="barwrap"><div class="fill-up" id="barUp" style="width:50%"></div><div class="fill-down" id="barDown" style="width:50%"></div></div>
+    <div class="subline" id="subline">waiting for data…</div>
+  </div>
+
+  <div class="card pricecard">
+    <div class="block"><div class="k">BTC SPOT (Coinbase)</div><div class="v" id="spotPrice">—</div></div>
+    <div class="block" style="text-align:right;"><div class="k">DIST. TO TARGET</div><div class="v mono-sm" id="deltaToTarget">—</div></div>
+  </div>
+
+  <div class="card" id="flowCard">
+    <div class="k" style="font-size:11px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+      <span>ORDER FLOW · last 15m</span>
+      <span id="flowBiasTag" style="font-family:var(--font-mono);font-size:11px;font-weight:700;">—</span>
+    </div>
+    <div class="barwrap" style="margin-top:0;"><div class="fill-up" id="flowBarUp" style="width:50%"></div><div class="fill-down" id="flowBarDown" style="width:50%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:5px;font-family:var(--font-mono);">
+      <span id="flowBuyPct">buy 50%</span><span id="flowSellPct">sell 50%</span>
+    </div>
+    <div class="kalshi-compare" style="margin-top:12px;">
+      <div class="kc"><div class="k">WHALE BUYS</div><div class="v" id="whaleBuy" style="color:var(--up);">0</div></div>
+      <div class="kc"><div class="k">WHALE SELLS</div><div class="v" id="whaleSell" style="color:var(--down);">0</div></div>
+      <div class="kc"><div class="k">PROB TILT</div><div class="v" id="flowTilt">+0.0pt</div></div>
+    </div>
+    <div class="row2" style="margin-top:12px;">
+      <div class="field" style="margin-bottom:0;"><div class="k">WHALE SIZE (BTC)</div><input type="number" id="whaleThreshInput" step="0.5" value="5"></div>
+      <div class="field" style="margin-bottom:0;"><div class="k">FLOW WEIGHT (%)</div><input type="number" id="flowWeightInput" step="5" value="40" min="0" max="100"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <div class="k"><span>TARGET PRICE (window reference)</span><span class="toggle-btn active" id="autoTargetBtn">auto</span></div>
+      <input type="number" id="targetInput" placeholder="e.g. 111250.50">
+    </div>
+    <div class="row2">
+      <div class="field"><div class="k">MINUTES LEFT</div><input type="number" id="minsLeftInput" step="0.1"></div>
+      <div class="field"><div class="k"><span>VOL (ann. %)</span></div><input type="number" id="volInput" step="0.1" disabled></div>
+    </div>
+  </div>
+
+  <div class="card" id="kalshiCard" style="display:none;">
+    <div class="k" style="font-size:11px;color:var(--muted);margin-bottom:8px;">KALSHI MARKET (live)</div>
+    <div class="kalshi-compare">
+      <div class="kc"><div class="k">TICKER</div><div class="v" id="kTicker" style="font-size:12px;">—</div></div>
+      <div class="kc"><div class="k">YES ASK (implied ↑)</div><div class="v" id="kYes">—</div></div>
+      <div class="kc"><div class="k">MODEL ↑</div><div class="v" id="kModel">—</div></div>
+    </div>
+  </div>
+
+  <div class="status" id="statusLine"><span class="dot warn"></span>connecting…</div>
+  <div class="foot">
+    Model: driftless lognormal diffusion (Black–Scholes d2) using trailing realized volatility, tilted by a heuristic order-flow signal. Not financial advice — Kalshi settlement uses CF Benchmarks BRTI, which can differ slightly from Coinbase spot.
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let autoTarget = true;
+
+  function fmtUSD(n){ return (n==null||isNaN(n)) ? '—' : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function fmtPct(n){ return (n==null||isNaN(n)) ? '--%' : (n*100).toFixed(1)+'%'; }
+
+  $('targetInput').addEventListener('input', () => {
+    autoTarget = false;
+    $('autoTargetBtn').classList.remove('active');
+    refresh();
+  });
+  $('autoTargetBtn').addEventListener('click', () => {
+    autoTarget = true;
+    $('autoTargetBtn').classList.add('active');
+    $('targetInput').value = '';
+    refresh();
+  });
+  $('minsLeftInput').dataset.auto = '1';
+  $('minsLeftInput').addEventListener('input', () => { $('minsLeftInput').dataset.auto = '0'; refresh(); });
+  $('minsLeftInput').addEventListener('dblclick', () => { $('minsLeftInput').dataset.auto = '1'; $('minsLeftInput').value=''; refresh(); });
+  $('whaleThreshInput').addEventListener('input', refresh);
+  $('flowWeightInput').addEventListener('input', refresh);
+
+  async function refresh(){
+    const params = new URLSearchParams();
+    params.set('target', autoTarget ? 'auto' : ($('targetInput').value || 'auto'));
+    params.set('mins_left', $('minsLeftInput').dataset.auto === '1' ? 'auto' : ($('minsLeftInput').value || 'auto'));
+    params.set('whale_thresh', $('whaleThreshInput').value || 5);
+    params.set('flow_weight', $('flowWeightInput').value || 40);
+
+    try {
+      const res = await fetch('/api/state?' + params.toString(), {cache:'no-store'});
+      const d = await res.json();
+      render(d);
+    } catch(e){
+      $('statusLine').innerHTML = '<span class="dot bad"></span>server unreachable';
+    }
+  }
+
+  function render(d){
+    $('spotPrice').textContent = fmtUSD(d.spot);
+    $('volInput').value = d.annual_vol != null ? (d.annual_vol*100).toFixed(1) : '';
+    if (d.target != null) $('targetInput').placeholder = d.target.toFixed(2);
+    if (autoTarget && d.target != null) $('targetInput').value = '';
+    if ($('minsLeftInput').dataset.auto === '1' && d.mins_left != null) $('minsLeftInput').value = d.mins_left.toFixed(2);
+
+    if (d.target != null && d.spot != null){
+      const delta = d.spot - d.target;
+      const el = $('deltaToTarget');
+      el.textContent = (delta>=0?'+':'') + delta.toLocaleString('en-US',{maximumFractionDigits:2});
+      el.className = 'v mono-sm ' + (delta>=0 ? 'delta-up':'delta-down');
+    }
+
+    const p = d.prob && d.prob.final;
+    if (p != null){
+      $('pctAbove').textContent = fmtPct(p);
+      $('pctBelow').textContent = fmtPct(1-p);
+      $('barUp').style.width = (p*100).toFixed(1)+'%';
+      $('barDown').style.width = ((1-p)*100).toFixed(1)+'%';
+      const tiltPts = (d.prob.tilt||0)*100;
+      $('subline').textContent = 'σ ' + ((d.annual_vol||0)*100).toFixed(0) + '% ann. · ' + (d.mins_left||0).toFixed(1) + ' min left · flow tilt ' + (tiltPts>=0?'+':'') + tiltPts.toFixed(1) + 'pt';
+      $('kModel').textContent = fmtPct(p);
+      $('flowTilt').textContent = (tiltPts>=0?'+':'') + tiltPts.toFixed(1) + 'pt';
+      $('flowTilt').style.color = tiltPts > 0.2 ? 'var(--up)' : (tiltPts < -0.2 ? 'var(--down)' : 'var(--text)');
+    } else {
+      $('pctAbove').textContent = '--%'; $('pctBelow').textContent = '--%';
+      $('subline').textContent = 'waiting for price/volatility data…';
+    }
+
+    if (d.flow){
+      const total = d.flow.buy_vol + d.flow.sell_vol;
+      const buyPct = total>0 ? d.flow.buy_vol/total : 0.5;
+      $('flowBarUp').style.width = (buyPct*100).toFixed(1)+'%';
+      $('flowBarDown').style.width = ((1-buyPct)*100).toFixed(1)+'%';
+      $('flowBuyPct').textContent = 'buy ' + (buyPct*100).toFixed(0) + '%';
+      $('flowSellPct').textContent = 'sell ' + ((1-buyPct)*100).toFixed(0) + '%';
+      $('whaleBuy').textContent = d.flow.whale_buy_count + ' · ' + d.flow.whale_buy_vol.toFixed(1) + ' BTC';
+      $('whaleSell').textContent = d.flow.whale_sell_count + ' · ' + d.flow.whale_sell_vol.toFixed(1) + ' BTC';
+      const tag = $('flowBiasTag');
+      if (Math.abs(d.flow.combined_signal) < 0.08){ tag.textContent='NEUTRAL'; tag.style.color='var(--muted)'; }
+      else if (d.flow.combined_signal > 0){ tag.textContent='BUY-SIDE'; tag.style.color='var(--up)'; }
+      else { tag.textContent='SELL-SIDE'; tag.style.color='var(--down)'; }
+    }
+
+    if (d.kalshi && d.kalshi.ticker){
+      $('kalshiCard').style.display = 'block';
+      $('kTicker').textContent = d.kalshi.ticker;
+      $('kYes').textContent = d.kalshi.yes_ask != null ? fmtPct(d.kalshi.yes_ask) : '—';
+    }
+
+    let dot='ok', msg='live';
+    if (d.status){
+      if (d.status.coinbase === 'error'){ dot='bad'; msg='Coinbase feed down on server'; }
+      else if (d.status.coinbase === 'connecting'){ dot='warn'; msg='server connecting to feeds…'; }
+      if (d.status.binance === 'error') msg += ' · order flow down';
+      if (d.status.kalshi && d.status.kalshi !== 'ok') msg += ' · kalshi: ' + d.status.kalshi;
+    }
+    $('statusLine').innerHTML = '<span class="dot '+dot+'"></span>' + msg;
+  }
+
+  function tickClock(){ $('clock').textContent = new Date().toLocaleTimeString([], {hour12:false}); }
+
+  refresh();
+  setInterval(refresh, 4000);
+  setInterval(tickClock, 1000);
+  tickClock();
+})();
+</script>
+</body>
+</html>
